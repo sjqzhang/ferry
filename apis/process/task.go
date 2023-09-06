@@ -48,11 +48,16 @@ func TaskList(c *gin.Context) {
 		file := make(map[string]interface{})
 		fileClassify := strings.Split(fn, ".")
 		fileDetails := strings.Split(fileClassify[0], "-")
+		if len(fileClassify)<2 {
+			fileClassify = append(fileClassify, "req")
+		}
 		switch fileClassify[1] {
 		case "py":
 			file["classify"] = "Python"
 		case "sh":
 			file["classify"] = "Shell"
+		case "req":
+			file["classify"] = "Http"
 		default:
 			file["classify"] = "Other"
 		}
@@ -127,6 +132,10 @@ func CreateTask(c *gin.Context) {
 		fileName = fileName + ".py"
 	} else if taskValue.Classify == "shell" {
 		fileName = fileName + ".sh"
+	} else if taskValue.Classify=="req" {
+		fileName = fileName + ".req"
+	} else {
+		fileName = fileName + ".other"
 	}
 
 	err = ioutil.WriteFile(fileName, []byte(taskValue.Content), 0755)
@@ -165,6 +174,8 @@ func UpdateTask(c *gin.Context) {
 		suffixName = ".py"
 	} else if strings.ToLower(file.Classify) == "shell" {
 		suffixName = ".sh"
+	} else if strings.ToLower(file.Classify) == "http" {
+		suffixName = ".req"
 	}
 
 	if fullNameList[len(fullNameList)-1][len(fullNameList[len(fullNameList)-1])-3:len(fullNameList[len(fullNameList)-1])] != suffixName {

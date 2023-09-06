@@ -2,18 +2,24 @@ package worker
 
 import (
 	"context"
-	"errors"
 	"ferry/pkg/logger"
-	"os/exec"
-	"syscall"
-
 	"github.com/RichardKnop/machinery/v1/tasks"
+	"os/exec"
+	"path"
+	"syscall"
 )
 
 var asyncTaskMap map[string]interface{}
 
 func executeTaskBase(scriptPath string, params string) (err error) {
-	command := exec.Command(scriptPath, params) //初始化Cmd
+	//取文件后缀 .py .sh .req
+	suffix := path.Ext(scriptPath)
+	if suffix != ".py" && suffix != ".sh" && suffix != ".req" {
+		logger.Errorf("目前仅支持Python、Shell、Http脚本的执行，请知悉。")
+		return
+	}
+
+	command := exec.Command("python",scriptPath, params) //初始化Cmd
 	out, err := command.CombinedOutput()
 	if err != nil {
 		logger.Errorf("task exec failed，%v", err.Error())
@@ -27,23 +33,11 @@ func executeTaskBase(scriptPath string, params string) (err error) {
 
 // ExecCommand 异步任务
 func ExecCommand(classify string, scriptPath string, params string) (err error) {
-	if classify == "shell" {
-		logger.Info("start exec shell - ", scriptPath)
-		err = executeTaskBase(scriptPath, params)
-		if err != nil {
-			return
-		}
-	} else if classify == "python" {
-		logger.Info("start exec python - ", scriptPath)
-		err = executeTaskBase(scriptPath, params)
-		if err != nil {
-			return
-		}
-	} else {
-		err = errors.New("目前仅支持Python与Shell脚本的执行，请知悉。")
-		return
-	}
-	return
+
+	_, err = factory.GetExecutor(classify).ExecuteTask(context.TODO(), scriptPath, params)
+
+	return err
+
 }
 
 func SendTask(ctx context.Context, classify string, scriptPath string, params string) {
